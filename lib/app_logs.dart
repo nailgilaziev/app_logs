@@ -3,8 +3,6 @@ library app_logs;
 import 'dart:collection';
 
 abstract class Logger {
-  Logger._() : _tag = '';
-
   Logger.forTag(this._tag);
 
   final String _tag;
@@ -40,14 +38,26 @@ enum _Level {
 // TODO(n): (^ look above) save logs to a secured place on device in a secured way to protect from rooted devices abd sending logs in a secured way (pub sd tmp dir + encryption / internal storage + encryption + rotation)
 class AppLogger extends Logger {
   factory AppLogger.forTag(String tag) {
-    assert(tag.length == 4, 'logger tag[$tag] length must be 4');
+    if (_tagsLength == null) initTagsLength(DEFAULT_TAG_LENGTH);
+    assert(tag.length == _tagsLength, 'logger tag[$tag] length must be $_tagsLength');
     final t = tag.toUpperCase();
     final l = _shared.putIfAbsent(t, () => AppLogger._(t));
     return l;
   }
 
-  AppLogger._(String tag) : super.forTag(tag) {
-    activenessOfLevels = List.filled(_Level.values.length, true);
+  AppLogger._(String tag)
+      : activenessOfLevels = List.filled(_Level.values.length, true),
+        super.forTag(tag);
+
+  static const DEFAULT_TAG_LENGTH = 4;
+  static int? _tagsLength;
+
+  static void initTagsLength(int length) {
+    if (_tagsLength != null)
+      print(
+          'AppLogger.initTagsLength can be called only once. tagsLength=$_tagsLength');
+    else
+      _tagsLength = length;
   }
 
   static final Map<String, AppLogger> _shared = {};
@@ -67,31 +77,31 @@ class AppLogger extends Logger {
   List<bool> activenessOfLevels;
 
   @override
-  void v(String msg, [Object payload]) {
+  void v(String msg, [Object? payload]) {
     toLruAndConsole(_Level.VRB, msg, payload);
   }
 
   @override
-  void i(String msg, [Object payload]) {
+  void i(String msg, [Object? payload]) {
     toLruAndConsole(_Level.INF, msg, payload);
   }
 
   @override
-  void s(String msg, [Object payload]) {
+  void s(String msg, [Object? payload]) {
     toLruAndConsole(_Level.SIG, msg, payload);
   }
 
   @override
-  void w(String msg, [Object payload]) {
+  void w(String msg, [Object? payload]) {
     toLruAndConsole(_Level.WRN, msg, payload);
   }
 
   @override
-  void e(String msg, [Object payload]) {
+  void e(String msg, [Object? payload]) {
     toLruAndConsole(_Level.ERR, msg, payload);
   }
 
-  void toLruAndConsole(_Level level, String msg, [Object payload]) {
+  void toLruAndConsole(_Level level, String msg, [Object? payload]) {
     if (!activenessOfLevels[level.index]) return;
     final s = _s(level, msg, payload);
     if (_lru.length > 5000) _lru.removeFirst();
@@ -99,9 +109,9 @@ class AppLogger extends Logger {
     if (printToConsole) print(s);
   }
 
-  String _s(_Level level, String msg, Object payload) {
+  String _s(_Level level, String msg, Object? payload) {
     String d2s(int d) => d < 10 ? '0$d' : d.toString();
-    String trunc(String s) => s == null || s.length < truncateLength
+    String? trunc(String? s) => s == null || s.length < truncateLength
         ? s
         : s.substring(0, truncateLength) + '<...>';
     final n = DateTime.now();
