@@ -69,6 +69,8 @@ class AppLogger extends Logger {
   }
 
   /// Switch to on only in debug mode, for safety reasons
+  /// import 'package:flutter/foundation.dart';
+  /// AppLogger.printToConsole = !kReleaseMode;
   static var printToConsole = false;
 
   /// msg and payloads are truncated if exceed this value. 0 means no truncating applied
