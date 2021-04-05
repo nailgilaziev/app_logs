@@ -18,12 +18,12 @@ abstract class Logger {
   void s(String msg, [Object payload]);
 }
 
-enum _Level {
-  VRB, // verbose
-  INF, // informational
-  SIG, // significant / success
-  WRN, // warning
-  ERR, // error
+enum LoggerLevel {
+  vrb, // verbose
+  inf, // informational
+  sig, // significant / success
+  wrn, // warning
+  err, // error
 }
 
 ///*
@@ -37,27 +37,42 @@ enum _Level {
 
 // TODO(n): (^ look above) save logs to a secured place on device in a secured way to protect from rooted devices abd sending logs in a secured way (pub sd tmp dir + encryption / internal storage + encryption + rotation)
 class AppLogger extends Logger {
-  factory AppLogger.forTag(String tag) {
-    if (_tagsLength == null) initTagsLength(DEFAULT_TAG_LENGTH);
-    assert(tag.length == _tagsLength, 'logger tag[$tag] length must be $_tagsLength');
-    final t = tag.toUpperCase();
-    final l = _shared.putIfAbsent(t, () => AppLogger._(t));
+  factory AppLogger.forTag(String tag, {bool enabled = true}) {
+    if (_tagsLength == null) initTagsLength(kDefaultTagLength);
+    final configuredLength = _tagsLength!;
+    String t;
+    if (configuredLength < 6) {
+      t = 'L';
+    } else if (tag.length > configuredLength) {
+      final start = configuredLength ~/ 2;
+      final shift = configuredLength.isEven ? 1 : 0;
+      final end = tag.length - start + shift;
+      t = tag.replaceRange(start, end, '…');
+    } else if (tag.length < configuredLength) {
+      t = tag.padLeft(configuredLength);
+    } else {
+      t = tag;
+    }
+    final l = _shared.putIfAbsent(t, () => AppLogger._(t, enabled));
     return l;
   }
 
-  AppLogger._(String tag)
-      : activenessOfLevels = List.filled(_Level.values.length, true),
+  AppLogger._(String tag, bool levelsState)
+      : _activenessOfLevels =
+            List.filled(LoggerLevel.values.length, levelsState),
         super.forTag(tag);
 
-  static const DEFAULT_TAG_LENGTH = 4;
+  static const kDefaultTagLength = 20;
   static int? _tagsLength;
 
   static void initTagsLength(int length) {
-    if (_tagsLength != null)
-      print(
-          'AppLogger.initTagsLength can be called only once. tagsLength=$_tagsLength');
-    else
+    if (_tagsLength != null) {
+      // ignore: avoid_print
+      print('AppLogger.initTagsLength can be called only once.'
+          ' tagsLength=$_tagsLength');
+    } else {
       _tagsLength = length;
+    }
   }
 
   static final Map<String, AppLogger> _shared = {};
@@ -71,47 +86,62 @@ class AppLogger extends Logger {
   /// Switch to on only in debug mode, for safety reasons
   /// import 'package:flutter/foundation.dart';
   /// AppLogger.printToConsole = !kReleaseMode;
-  static var printToConsole = false;
+  static bool printToConsole = false;
 
   /// msg and payloads are truncated if exceed this value. 0 means no truncating applied
-  static var truncateLength = 360;
+  static int truncateLength = 360;
 
-  List<bool> activenessOfLevels;
+  List<bool> _activenessOfLevels;
+
+  void configureLevels({
+    List<LoggerLevel>? enable,
+    List<LoggerLevel>? disable,
+  }) {
+    // ignore: avoid_function_literals_in_foreach_calls
+    enable?.forEach((e) {
+      _activenessOfLevels[e.index] = true;
+    });
+    // ignore: avoid_function_literals_in_foreach_calls
+    disable?.forEach((e) {
+      _activenessOfLevels[e.index] = false;
+    });
+  }
 
   @override
   void v(String msg, [Object? payload]) {
-    toLruAndConsole(_Level.VRB, msg, payload);
+    toLruAndConsole(LoggerLevel.vrb, msg, payload);
   }
 
   @override
   void i(String msg, [Object? payload]) {
-    toLruAndConsole(_Level.INF, msg, payload);
+    toLruAndConsole(LoggerLevel.inf, msg, payload);
   }
 
   @override
   void s(String msg, [Object? payload]) {
-    toLruAndConsole(_Level.SIG, msg, payload);
+    toLruAndConsole(LoggerLevel.sig, msg, payload);
   }
 
   @override
   void w(String msg, [Object? payload]) {
-    toLruAndConsole(_Level.WRN, msg, payload);
+    toLruAndConsole(LoggerLevel.wrn, msg, payload);
   }
 
   @override
   void e(String msg, [Object? payload]) {
-    toLruAndConsole(_Level.ERR, msg, payload);
+    toLruAndConsole(LoggerLevel.err, msg, payload);
   }
 
-  void toLruAndConsole(_Level level, String msg, [Object? payload]) {
-    if (!activenessOfLevels[level.index]) return;
+  void toLruAndConsole(LoggerLevel level, String msg, [Object? payload]) {
+    if (!_activenessOfLevels[level.index]) return;
     final s = _s(level, msg, payload);
     if (_lru.length > 5000) _lru.removeFirst();
     _lru.add(s.replaceAll('\n', ' ↵ '));
+    // ignore: avoid_print
     if (printToConsole) print(s);
   }
 
-  String _s(_Level level, String msg, Object? payload) {
+  String _s(LoggerLevel level, String msg, Object? payload) {
     String d2s(int d) => d < 10 ? '0$d' : d.toString();
     String? trunc(String? s) => s == null || s.length < truncateLength
         ? s
@@ -121,6 +151,6 @@ class AppLogger extends Logger {
     final time = '${d2s(n.hour)}:${d2s(n.minute)}:${d2s(n.second)}.$ms';
     final l = level.toString().split('.')[1];
     final p = trunc(payload?.toString());
-    return '$time $_tag/$l  ${trunc(msg)}${p == null ? '' : ': ' + p}';
+    return '$time $l/$_tag  ${trunc(msg)}${p == null ? '' : ': ' + p}';
   }
 }
