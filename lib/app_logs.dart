@@ -37,6 +37,10 @@ enum LoggerLevel {
 
 // TODO(n): (^ look above) save logs to a secured place on device in a secured way to protect from rooted devices abd sending logs in a secured way (pub sd tmp dir + encryption / internal storage + encryption + rotation)
 class AppLogger extends Logger {
+  factory AppLogger.forType(Type type, {bool enabled = true}) {
+    return AppLogger.forTag(type.toString(), enabled: enabled);
+  }
+
   factory AppLogger.forTag(String tag, {bool enabled = true}) {
     if (_tagsLength == null) initTagsLength(kDefaultTagLength);
     final configuredLength = _tagsLength!;
@@ -59,7 +63,7 @@ class AppLogger extends Logger {
 
   AppLogger._(String tag, bool levelsState)
       : _activenessOfLevels =
-            List.filled(LoggerLevel.values.length, levelsState),
+  List.filled(LoggerLevel.values.length, levelsState),
         super.forTag(tag);
 
   static const kDefaultTagLength = 20;
