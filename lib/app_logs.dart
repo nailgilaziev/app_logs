@@ -63,10 +63,10 @@ class AppLogger extends Logger {
 
   AppLogger._(String tag, bool levelsState)
       : _activenessOfLevels =
-  List.filled(LoggerLevel.values.length, levelsState),
+            List.filled(LoggerLevel.values.length, levelsState),
         super.forTag(tag);
 
-  static const kDefaultTagLength = 20;
+  static const kDefaultTagLength = 24;
   static int? _tagsLength;
 
   static void initTagsLength(int length) {
