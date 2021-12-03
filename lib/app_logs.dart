@@ -41,6 +41,9 @@ class AppLogger extends Logger {
     return AppLogger.forTag(type.toString(), enabled: enabled);
   }
 
+  /// Если логгера еще в списке нет (его уровни еще никто не преднастраивал)
+  /// то аргумент [enabled] настроит инициальное состояние для всех уровней
+  /// если до использования логгера уровни настроили или после, [enabled] не будет мешать
   factory AppLogger.forTag(String tag, {bool enabled = true}) {
     if (_tagsLength == null) initTagsLength(kDefaultTagLength);
     final configuredLength = _tagsLength!;
@@ -81,6 +84,8 @@ class AppLogger extends Logger {
 
   static final Map<String, AppLogger> _shared = {};
 
+  static Iterable<AppLogger> get allLoggers => _shared.values;
+
   static final DoubleLinkedQueue<String> _lru = DoubleLinkedQueue();
 
   static Iterable<String> items() {
@@ -97,6 +102,23 @@ class AppLogger extends Logger {
 
   List<bool> _activenessOfLevels;
 
+  /// Можно для всех логгеров [allLoggers] (или части логгеров) включить или выключить определенные уровни
+  /// Для более точечного конфигурирования каждого логгера или группы можно вызывать эту функцию несколько раз для разных логгеров
+  /// А для точечной настройки каждого логгера использовать функцию [.configureLevels()] для каждого логгера по отдельности
+  static void configureLoggersWithEqualLevels({
+    required Iterable<AppLogger> loggers,
+    List<LoggerLevel>? enable,
+    List<LoggerLevel>? disable,
+  }) {
+    for (final logger in loggers) {
+      logger.configureLevels(
+        enable: enable,
+        disable: disable,
+      );
+    }
+  }
+
+  /// Настройка уровней для конкретного логгера
   void configureLevels({
     List<LoggerLevel>? enable,
     List<LoggerLevel>? disable,
