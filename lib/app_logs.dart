@@ -7,6 +7,24 @@ abstract class Logger {
 
   final String _tag;
 
+  String? _localFunction;
+  String? _localFunctionArguments;
+
+  /// Получить локальную копию логгера для использования внутри функции
+  /// Приписывает префикс с именем функции перед выводом тела сообщения
+  AppLogger localLogger(Function localFunction, [Object? callArguments]) {
+    final logger = AppLogger._(_tag, true);
+    var s = localFunction.toString();
+    s = s.substring(s.indexOf("'") + 1);
+    s = s.substring(0, s.indexOf("'"));
+    if (s.contains('@')) {
+      s = s.substring(0, s.indexOf("@"));
+    }
+    logger._localFunction = s;
+    logger._localFunctionArguments = callArguments.toString();
+    return logger;
+  }
+
   void v(String msg, [Object payload]);
 
   void i(String msg, [Object payload]);
@@ -24,6 +42,52 @@ enum LoggerLevel {
   sig, // significant / success
   wrn, // warning
   err, // error
+}
+
+class LogItem {
+  LoggerLevel level;
+  String tag;
+  String? functionName;
+  String? functionArguments;
+  String message;
+  String? payload;
+
+  LogItem(this.level, this.tag, this.functionName, this.functionArguments,
+      this.message, this.payload);
+
+  String exportToString({
+    bool showPayload = true,
+    bool showFunctionArguments = true,
+    int functionInfoMaxLength = 64,
+  }) {
+    String d2s(int d) => d < 10 ? '0$d' : d.toString();
+    final n = DateTime.now();
+    final ms = d2s(n.millisecond).toString().substring(0, 2);
+    final time = '${d2s(n.hour)}:${d2s(n.minute)}:${d2s(n.second)}.$ms';
+    final l = level.toString().split('.')[1];
+    final p = showPayload ? payload?.toString() : null;
+    final fa = showFunctionArguments ? functionArguments : null;
+    final fInfo = functionName == null ? '' : '.$functionName${fa ?? '()'} ';
+    final f = _truncateFromCenter(fInfo, functionInfoMaxLength);
+    return '$time $l/$tag  $f$message${p == null ? '' : ': $p'}'
+        .replaceAll('\n', ' ↵ ');
+  }
+
+  @override
+  String toString() {
+    return exportToString();
+  }
+}
+
+// helper function
+
+String _truncateFromCenter(String s, int maxLength) {
+  if (s.length <= maxLength) return s;
+  final start = maxLength ~/ 2;
+  final shift = maxLength.isEven ? 1 : 0;
+  final end = s.length - start + shift;
+  final result = s.replaceRange(start, end, '…');
+  return result;
 }
 
 ///*
@@ -54,15 +118,10 @@ class AppLogger extends Logger {
     String t;
     if (configuredLength < 6) {
       t = 'L';
-    } else if (tag.length > configuredLength) {
-      final start = configuredLength ~/ 2;
-      final shift = configuredLength.isEven ? 1 : 0;
-      final end = tag.length - start + shift;
-      t = tag.replaceRange(start, end, '…');
     } else if (tag.length < configuredLength) {
       t = tag.padLeft(configuredLength);
     } else {
-      t = tag;
+      t = _truncateFromCenter(tag, configuredLength);
     }
     final l = _shared.putIfAbsent(t, () => AppLogger._(t, enabled));
     return l;
@@ -70,7 +129,7 @@ class AppLogger extends Logger {
 
   AppLogger._(String tag, bool levelsState)
       : _activenessOfLevels =
-  List.filled(LoggerLevel.values.length, levelsState),
+            List.filled(LoggerLevel.values.length, levelsState),
         super.forTag(tag);
 
   static const kDefaultTagLength = 24;
@@ -90,10 +149,10 @@ class AppLogger extends Logger {
 
   static Iterable<AppLogger> get allLoggers => _shared.values;
 
-  static final DoubleLinkedQueue<String> _lru = DoubleLinkedQueue();
+  static final DoubleLinkedQueue<LogItem> _lru = DoubleLinkedQueue();
 
   static Iterable<String> items() {
-    return _lru.toList().reversed;
+    return _lru.map((e) => e.toString()).toList().reversed;
   }
 
   /// Switch to on only in debug mode, for safety reasons
@@ -103,6 +162,12 @@ class AppLogger extends Logger {
 
   /// msg and payloads are truncated if exceed this value. 0 means no truncating applied
   static int truncateLength = 360;
+
+  String? _truncate(String? s) {
+    return s == null || s.length < truncateLength
+        ? s
+        : '${s.substring(0, truncateLength)}<...>';
+  }
 
   List<bool> _activenessOfLevels;
 
@@ -162,25 +227,31 @@ class AppLogger extends Logger {
     toLruAndConsole(LoggerLevel.err, msg, payload);
   }
 
-  void toLruAndConsole(LoggerLevel level, String msg, [Object? payload]) {
-    if (!_activenessOfLevels[level.index]) return;
-    final s = _s(level, msg, payload);
-    if (_lru.length > 5000) _lru.removeFirst();
-    _lru.add(s.replaceAll('\n', ' ↵ '));
-    // ignore: avoid_print
-    if (printToConsole) print(s);
+  void vBuild([String? msg, Object? payload]) {
+    v('.build() ${msg ?? ''}', payload);
   }
 
-  String _s(LoggerLevel level, String msg, Object? payload) {
-    String d2s(int d) => d < 10 ? '0$d' : d.toString();
-    String? trunc(String? s) => s == null || s.length < truncateLength
-        ? s
-        : s.substring(0, truncateLength) + '<...>';
-    final n = DateTime.now();
-    final ms = d2s(n.millisecond).toString().substring(0, 2);
-    final time = '${d2s(n.hour)}:${d2s(n.minute)}:${d2s(n.second)}.$ms';
-    final l = level.toString().split('.')[1];
-    final p = trunc(payload?.toString());
-    return '$time $l/$_tag  ${trunc(msg)}${p == null ? '' : ': ' + p}';
+  void vConstructor([String? msg, Object? payload]) {
+    v('.constructor() ${msg ?? ''}', payload);
+  }
+
+  void vInitState([String? msg, Object? payload]) {
+    v('.initState() ${msg ?? ''}', payload);
+  }
+
+  void toLruAndConsole(LoggerLevel level, String msg, [Object? payload]) {
+    if (!_activenessOfLevels[level.index]) return;
+    final log = LogItem(
+      level,
+      _tag,
+      _localFunction,
+      _localFunctionArguments,
+      _truncate(msg)!,
+      _truncate(payload.toString()),
+    );
+    if (_lru.length > 5000) _lru.removeFirst();
+    _lru.add(log);
+    // ignore: avoid_print
+    if (printToConsole) print(log.toString());
   }
 }
