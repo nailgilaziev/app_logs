@@ -24,7 +24,8 @@ class LogItem {
     final l = level.toString().split('.')[1];
     final p = showPayload ? payload?.toString() : null;
     final fa = showFunctionArguments ? functionArguments : null;
-    final fInfo = functionName == null ? '' : '.$functionName${fa ?? '()'} ';
+    final fn = functionName == null ? null : '.$functionName';
+    final fInfo = fn == null ? '' : '$fn${fa == null ? '()' : '($fa)'} ';
     final f = truncateFromCenter(fInfo, functionInfoMaxLength);
     return '$time $l/$tag  $f$message${p == null ? '' : ': $p'}'
         .replaceAll('\n', ' ↵ ');

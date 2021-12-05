@@ -14,16 +14,24 @@ abstract class Logger {
 
   /// Получить локальную копию логгера для использования внутри функции
   /// Приписывает префикс с именем функции перед выводом тела сообщения
-  AppLogger localLogger(Function localFunction, [Object? callArguments]) {
-    final logger = AppLogger._(_tag, true);
+  AppLogger func(Function localFunction, [Object? callArguments]) {
     var s = localFunction.toString();
     s = s.substring(s.indexOf("'") + 1);
     s = s.substring(0, s.indexOf("'"));
     if (s.contains('@')) {
       s = s.substring(0, s.indexOf("@"));
     }
-    logger._localFunction = s;
-    logger._localFunctionArguments = callArguments.toString();
+    return funcName(s, callArguments);
+  }
+
+  /// Иногда функцией, тело которой нужно логировать, является getter, который невозможно передать как Function
+  /// Для такого случая эта вспомогательная функция
+  AppLogger funcName(String localFunctionName, [Object? callArguments]) {
+    final logger = AppLogger._(_tag, true);
+
+    logger._localFunction = localFunctionName;
+    logger._localFunctionArguments = callArguments?.toString();
+    logger.v('');
     return logger;
   }
 
@@ -175,16 +183,20 @@ class AppLogger extends Logger {
     toLruAndConsole(LoggerLevel.err, msg, payload);
   }
 
-  void vBuild([String? msg, Object? payload]) {
-    v('.build() ${msg ?? ''}', payload);
-  }
-
   void vConstructor([String? msg, Object? payload]) {
     v('.constructor() ${msg ?? ''}', payload);
   }
 
   void vInitState([String? msg, Object? payload]) {
     v('.initState() ${msg ?? ''}', payload);
+  }
+
+  void vBuild([String? msg, Object? payload]) {
+    v('.build() ${msg ?? ''}', payload);
+  }
+
+  void vDispose([String? msg, Object? payload]) {
+    v('.dispose() ${msg ?? ''}', payload);
   }
 
   void toLruAndConsole(LoggerLevel level, String msg, [Object? payload]) {
@@ -195,7 +207,7 @@ class AppLogger extends Logger {
       _localFunction,
       _localFunctionArguments,
       _truncate(msg)!,
-      _truncate(payload.toString()),
+      _truncate(payload?.toString()),
     );
     if (_lru.length > 5000) _lru.removeFirst();
     _lru.add(log);
