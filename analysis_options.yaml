@@ -11,9 +11,8 @@ analyzer:
     missing_required_param: error
     parameter_assignments: error
     missing_return: error
-    always_use_package_imports: error
 linter:
   rules:
     # for some reason enabling it doesn't make any difference
     always-specify-types: true # https://dart-lang.github.io/linter/lints/always_specify_types.html
-    always_use_package_imports: true # https://dart-lang.github.io/linter/lints/always_use_package_imports.html
+    always_use_package_imports: false # https://dart-lang.github.io/linter/lints/always_use_package_imports.html
