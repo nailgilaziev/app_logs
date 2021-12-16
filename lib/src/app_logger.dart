@@ -9,40 +9,6 @@ abstract class Logger {
 
   final String _tag;
 
-  String? _localFunction;
-  String? _localFunctionArguments;
-
-  /// Получить локальную копию логгера для использования внутри функции
-  /// Приписывает префикс с именем функции перед выводом тела сообщения
-  AppLogger func(Function localFunction, {Object? args, bool silent = false}) {
-    // print('extract func name from ($localFunction)');
-    var s = localFunction.toString();
-    if (s.contains("'")) {
-      s = s.substring(s.indexOf("'") + 1);
-      s = s.substring(0, s.indexOf("'"));
-      if (s.contains('@')) {
-        s = s.substring(0, s.indexOf("@"));
-      }
-    } else {
-      s = '<js_func_name_unavailable>';
-    }
-    return funcName(s, args: args, silent: silent);
-  }
-
-  /// Иногда функцией, тело которой нужно логировать, является getter, который невозможно передать как Function
-  /// Для такого случая эта вспомогательная функция
-  AppLogger funcName(String localFunctionName,
-      {Object? args, bool silent = false}) {
-    final logger = AppLogger._(_tag, true);
-
-    logger._localFunction = localFunctionName;
-    logger._localFunctionArguments = args?.toString();
-    if (!silent) {
-      logger.v('');
-    }
-    return logger;
-  }
-
   void v(String msg, [Object payload]);
 
   void i(String msg, [Object payload]);
@@ -167,54 +133,41 @@ class AppLogger extends Logger {
   }
 
   @override
-  void v(String msg, [Object? payload]) {
+  void v([String? msg, Object? payload]) {
     toLruAndConsole(LoggerLevel.vrb, msg, payload);
   }
 
   @override
-  void i(String msg, [Object? payload]) {
+  void i([String? msg, Object? payload]) {
     toLruAndConsole(LoggerLevel.inf, msg, payload);
   }
 
   @override
-  void s(String msg, [Object? payload]) {
+  void s([String? msg, Object? payload]) {
     toLruAndConsole(LoggerLevel.sig, msg, payload);
   }
 
   @override
-  void w(String msg, [Object? payload]) {
+  void w([String? msg, Object? payload]) {
     toLruAndConsole(LoggerLevel.wrn, msg, payload);
   }
 
   @override
-  void e(String msg, [Object? payload]) {
+  void e([String? msg, Object? payload]) {
     toLruAndConsole(LoggerLevel.err, msg, payload);
   }
 
-  AppLogger vConstructor([String? msg, Object? payload]) {
-    return funcName('constructor', silent: true)..v(msg ?? '', payload);
-  }
+  String? _localFunction;
+  String? _localFunctionArguments;
 
-  AppLogger vInitState([String? msg, Object? payload]) {
-    return funcName('initState', silent: true)..v(msg ?? '', payload);
-  }
-
-  AppLogger vBuild([String? msg, Object? payload]) {
-    return funcName('build', silent: true)..v(msg ?? '', payload);
-  }
-
-  void vDispose([String? msg, Object? payload]) {
-    v('.dispose() ${msg ?? ''}', payload);
-  }
-
-  void toLruAndConsole(LoggerLevel level, String msg, [Object? payload]) {
+  void toLruAndConsole(LoggerLevel level, String? msg, [Object? payload]) {
     if (!_activenessOfLevels[level.index]) return;
     final log = LogItem(
       level,
       _tag,
       _localFunction,
       _localFunctionArguments,
-      _truncate(msg)!,
+      _truncate(msg) ?? '',
       _truncate(payload?.toString()),
     );
     if (_lru.length > 5000) _lru.removeFirst();
@@ -222,4 +175,39 @@ class AppLogger extends Logger {
     // ignore: avoid_print
     if (printToConsole) print(log.toString());
   }
+
+  /// Получить локальную копию логгера для использования внутри функции
+  /// Приписывает префикс с именем функции перед выводом тела сообщения
+  AppLogger func(Function localFunction, {Object? args}) {
+    // print('extract func name from ($localFunction)');
+    var s = localFunction.toString();
+    if (s.contains("'")) {
+      s = s.substring(s.indexOf("'") + 1);
+      s = s.substring(0, s.indexOf("'"));
+      if (s.contains('@')) {
+        s = s.substring(0, s.indexOf("@"));
+      }
+    } else {
+      s = '<js_func_name_unavailable>';
+    }
+    return funcName(s, args: args);
+  }
+
+  /// Иногда функцией, тело которой нужно логировать, является getter, который невозможно передать как Function
+  /// Для такого случая эта вспомогательная функция
+  AppLogger funcName(String localFunctionName, {Object? args}) {
+    final logger = AppLogger._(_tag, true);
+
+    logger._localFunction = localFunctionName;
+    logger._localFunctionArguments = args?.toString();
+    return logger;
+  }
+
+  AppLogger funcConstructor() => funcName('constructor');
+
+  AppLogger funcInitState() => funcName('initState');
+
+  AppLogger funcBuild() => funcName('build');
+
+  AppLogger funcDispose() => funcName('dispose');
 }
