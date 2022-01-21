@@ -9,15 +9,15 @@ abstract class Logger {
 
   final String _tag;
 
-  void v(String msg, [Object payload]);
+  Logger v(String msg, [Object payload]);
 
-  void i(String msg, [Object payload]);
+  Logger i(String msg, [Object payload]);
 
-  void w(String msg, [Object payload]);
+  Logger w(String msg, [Object payload]);
 
-  void e(String msg, [Object payload]);
+  Logger e(String msg, [Object payload]);
 
-  void s(String msg, [Object payload]);
+  Logger s(String msg, [Object payload]);
 }
 
 ///*
@@ -81,8 +81,8 @@ class AppLogger extends Logger {
 
   static final DoubleLinkedQueue<LogItem> _lru = DoubleLinkedQueue();
 
-  static Iterable<String> items() {
-    return _lru.map((e) => e.toString()).toList().reversed;
+  static List<LogItem> items() {
+    return _lru.toList();
   }
 
   /// Switch to on only in debug mode, for safety reasons
@@ -133,47 +133,61 @@ class AppLogger extends Logger {
   }
 
   @override
-  void v([String? msg, Object? payload]) {
-    toLruAndConsole(LoggerLevel.vrb, msg, payload);
+  AppLogger v([String? msg, Object? payload]) {
+    _toLruAndConsole(LoggerLevel.vrb, msg, payload);
+    return this;
   }
 
   @override
-  void i([String? msg, Object? payload]) {
-    toLruAndConsole(LoggerLevel.inf, msg, payload);
+  AppLogger i([String? msg, Object? payload]) {
+    _toLruAndConsole(LoggerLevel.inf, msg, payload);
+    return this;
   }
 
   @override
-  void s([String? msg, Object? payload]) {
-    toLruAndConsole(LoggerLevel.sig, msg, payload);
+  AppLogger s([String? msg, Object? payload]) {
+    _toLruAndConsole(LoggerLevel.sig, msg, payload);
+    return this;
   }
 
   @override
-  void w([String? msg, Object? payload]) {
-    toLruAndConsole(LoggerLevel.wrn, msg, payload);
+  AppLogger w([String? msg, Object? payload, StackTrace? stackTrace]) {
+    _toLruAndConsole(LoggerLevel.wrn, msg, payload, stackTrace);
+    return this;
   }
 
   @override
-  void e([String? msg, Object? payload]) {
-    toLruAndConsole(LoggerLevel.err, msg, payload);
+  AppLogger e([String? msg, Object? payload, StackTrace? stackTrace]) {
+    _toLruAndConsole(LoggerLevel.err, msg, payload, stackTrace);
+    return this;
   }
 
   String? _localFunction;
   String? _localFunctionArguments;
 
-  void toLruAndConsole(LoggerLevel level, String? msg, [Object? payload]) {
+  void _toLruAndConsole(LoggerLevel level, String? msg,
+      [Object? payload, StackTrace? stackTrace]) {
     if (!_activenessOfLevels[level.index]) return;
     final log = LogItem(
-      level,
-      _tag,
-      _localFunction,
-      _localFunctionArguments,
-      _truncate(msg) ?? '',
-      _truncate(payload?.toString()),
-    );
+        DateTime.now(),
+        level,
+        _tag,
+        _localFunction,
+        _localFunctionArguments,
+        // делаем екгтсфеу чтобы не натунуться на ситуацию, когда lru будет занимать гигабайты
+        _truncate(msg) ?? '',
+        _truncate(payload?.toString()),
+        stackTrace);
     if (_lru.length > 5000) _lru.removeFirst();
     _lru.add(log);
-    // ignore: avoid_print
-    if (printToConsole) print(log.toString());
+    if (printToConsole) {
+      // ignore: avoid_print
+      print(log.toString());
+      if (log.stackTrace != null) {
+        // ignore: avoid_print
+        print(log.stackTrace);
+      }
+    }
   }
 
   /// Получить локальную копию логгера для использования внутри функции

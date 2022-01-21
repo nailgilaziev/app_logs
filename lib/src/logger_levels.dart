@@ -5,3 +5,4 @@ enum LoggerLevel {
   wrn, // warning
   err, // error
 }
+
