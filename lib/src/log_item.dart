@@ -1,3 +1,5 @@
+import 'package:app_logs/app_logs.dart';
+
 import 'logger_levels.dart';
 import 'utils.dart';
 
@@ -22,7 +24,9 @@ class LogItem {
     String d2s(int d) => d < 10 ? '0$d' : d.toString();
     final n = createTime;
     final ms = d2s(n.millisecond).toString().substring(0, 2);
-    final time = '${d2s(n.hour)}:${d2s(n.minute)}:${d2s(n.second)}.$ms';
+    final time = AppLogger.showTimeInLogs
+        ? '${d2s(n.hour)}:${d2s(n.minute)}:${d2s(n.second)}.$ms'
+        : '';
     final l = level.toString().split('.')[1];
     final p = showPayload ? payload?.toString() : null;
     final fa = showFunctionArguments ? functionArguments : null;

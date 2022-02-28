@@ -90,6 +90,8 @@ class AppLogger extends Logger {
   /// AppLogger.printToConsole = !kReleaseMode;
   static bool printToConsole = false;
 
+  static bool showTimeInLogs = true;
+
   /// msg and payloads are truncated if exceed this value. 0 means no truncating applied
   static int truncateLength = 360;
 
