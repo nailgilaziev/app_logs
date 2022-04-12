@@ -164,6 +164,9 @@ class AppLogger extends Logger {
     return this;
   }
 
+  AppLogger logUserInteraction([String? msg, Object? payload]) =>
+      s('user interaction 👉 $msg', payload);
+
   String? _localFunction;
   String? _localFunctionArguments;
 
