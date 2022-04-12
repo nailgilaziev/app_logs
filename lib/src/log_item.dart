@@ -1,6 +1,5 @@
 import 'package:app_logs/app_logs.dart';
 
-import 'logger_levels.dart';
 import 'utils.dart';
 
 class LogItem {
