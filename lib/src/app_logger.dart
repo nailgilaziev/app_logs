@@ -229,4 +229,7 @@ class AppLogger extends Logger {
   AppLogger funcBuild() => funcName('build');
 
   AppLogger funcDispose() => funcName('dispose');
+
+  /// shorthand for verbose printing
+  AppLogger funcBuildV() => funcBuild().v();
 }
