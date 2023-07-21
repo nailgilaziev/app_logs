@@ -9,15 +9,16 @@ abstract class Logger {
 
   final String _tag;
 
-  Logger v(String msg, [Object payload]);
+  //TODO почему тут msg обязательный а в AppLogger nullable и не обязательный
+  Logger v(String msg, [Object? payload]);
 
-  Logger i(String msg, [Object payload]);
+  Logger i(String msg, [Object? payload]);
 
-  Logger w(String msg, [Object payload]);
+  Logger w(String msg, [Object? payload]);
 
-  Logger e(String msg, [Object payload]);
+  Logger e(String msg, [Object? payload]);
 
-  Logger s(String msg, [Object payload]);
+  Logger s(String msg, [Object? payload]);
 }
 
 ///*
