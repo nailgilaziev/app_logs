@@ -1,8 +1,11 @@
 enum LoggerLevel {
-  vrb, // verbose
-  inf, // informational
-  sig, // significant / success
-  wrn, // warning
-  err, // error
-}
+  v("vrb"), // verbose
+  i("inf"), // informational
+  s("sig"), // significant / success
+  w("wrn"), // warning
+  e("err"); // error
 
+  final String shortText;
+
+  const LoggerLevel(this.shortText);
+}

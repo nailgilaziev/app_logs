@@ -44,7 +44,7 @@ class AppLogger extends Logger {
   /// то аргумент [enabled] настроит инициальное состояние для всех уровней
   /// если до использования логгера уровни настроили или после, [enabled] не будет мешать
   factory AppLogger.forTag(String tag, {bool enabled = true}) {
-    if (_tagsLength == null) initTagsLength(kDefaultTagLength);
+    if (_tagsLength == null) initTagsLength(kDefaultTagsLength);
     final configuredLength = _tagsLength!;
     String t;
     if (configuredLength < 6) {
@@ -63,7 +63,7 @@ class AppLogger extends Logger {
             List.filled(LoggerLevel.values.length, levelsState),
         super.forTag(tag);
 
-  static const kDefaultTagLength = 24;
+  static const kDefaultTagsLength = 24;
   static int? _tagsLength;
 
   static void initTagsLength(int length) {
@@ -136,35 +136,42 @@ class AppLogger extends Logger {
   }
 
   @override
+  AppLogger vMeasure([String? msg, Object? payload]) {
+    _toLruAndConsole(LoggerLevel.v, msg, payload);
+    return this;
+  }
+
+  @override
   AppLogger v([String? msg, Object? payload]) {
-    _toLruAndConsole(LoggerLevel.vrb, msg, payload);
+    _toLruAndConsole(LoggerLevel.v, msg, payload);
     return this;
   }
 
   @override
   AppLogger i([String? msg, Object? payload]) {
-    _toLruAndConsole(LoggerLevel.inf, msg, payload);
+    _toLruAndConsole(LoggerLevel.i, msg, payload);
     return this;
   }
 
   @override
   AppLogger s([String? msg, Object? payload]) {
-    _toLruAndConsole(LoggerLevel.sig, msg, payload);
+    _toLruAndConsole(LoggerLevel.s, msg, payload);
     return this;
   }
 
   @override
   AppLogger w([String? msg, Object? payload, StackTrace? stackTrace]) {
-    _toLruAndConsole(LoggerLevel.wrn, msg, payload, stackTrace);
+    _toLruAndConsole(LoggerLevel.w, msg, payload, stackTrace);
     return this;
   }
 
   @override
   AppLogger e([String? msg, Object? payload, StackTrace? stackTrace]) {
-    _toLruAndConsole(LoggerLevel.err, msg, payload, stackTrace);
+    _toLruAndConsole(LoggerLevel.e, msg, payload, stackTrace);
     return this;
   }
 
+  // TODO rename userInteracted
   AppLogger logUserInteraction([String? msg, Object? payload]) =>
       s('user interaction 👉 $msg', payload);
 
