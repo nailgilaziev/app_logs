@@ -1,18 +1,17 @@
-include: package:lint/analysis_options.yaml # https://github.com/passsy/dart-lint/blob/master/lib/analysis_options.yaml
+include: package:flutter_lints/flutter.yaml
 
 analyzer:
-  strong-mode:
-    implicit-casts: false
-    implicit-dynamic: false
   language:
-    strict-inference: true # https://github.com/dart-lang/language/blob/master/resources/type-system/strict-inference.md
-    strict-raw-types: true # https://github.com/dart-lang/language/blob/master/resources/type-system/strict-raw-types.md
+    strict-inference: true
+    strict-raw-types: true
+    strict-casts: true
   errors:
-    missing_required_param: error
-    parameter_assignments: error
+    unrelated_type_equality_checks: error
     missing_return: error
+    body_might_complete_normally_nullable: error
+    parameter_assignments: error
 linter:
   rules:
-    # for some reason enabling it doesn't make any difference
-    always-specify-types: true # https://dart-lang.github.io/linter/lints/always_specify_types.html
-    always_use_package_imports: false # https://dart-lang.github.io/linter/lints/always_use_package_imports.html
+    always_use_package_imports: true
+    prefer_const_constructors: false
+    always_declare_return_types: true
